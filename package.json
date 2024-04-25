@@ -17,6 +17,8 @@
     "react-checkbox-tree": "^1.8.0",
     "react-dom": "^18.2.0",
     "react-folder-tree": "^5.1.1",
+    "react-hook-form": "^7.51.3",
+    "react-router-dom": "^6.23.0",
     "react-scripts": "5.0.1",
     "react-treebeard": "^3.2.4",
     "react-virtualized-tree": "^3.4.1",
