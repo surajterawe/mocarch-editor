@@ -215,9 +215,26 @@ export default function CodeEditor() {
     return path;
   };
 
-  const onNameClick = ({ defaultOnClick, nodeData }) => {
-    defaultOnClick();
+    const [lastTapTime, setLastTapTime] = useState(0);
+  const delay = 300; // Adjust as needed, this is in milliseconds
 
+  const handleTap = () => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+
+    if (tapLength < delay) {
+      // Double tap detected
+      console.log('Double tap!');
+      // Add your double tap logic here
+    }
+
+    setLastTapTime(currentTime);
+  };
+
+
+  const onNameClick = ({ defaultOnClick, nodeData }) => {
+    handleTap()
+    defaultOnClick();
     const {
       // internal data
       path,
@@ -386,13 +403,11 @@ export default function CodeEditor() {
           xs={3}
           md={3}
         >
-          {/* 1800-209-5454 */}
           <FolderTree
             data={initialState}
             initCheckedStatus="checked" // default: 0 [unchecked]
             initOpenStatus="custom" // default: 'open'
             onChange={onTreeStateChange}
-            onDoubleClick={onNameClick}
             onNameClick={onNameClick}
             showCheckbox={false} // default: true
             iconComponents={{ OKIcon: editIcon, folderIcon: folderIcon }}
