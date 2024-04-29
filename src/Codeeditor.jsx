@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 // import { useNavigate } from "react-router-dom";
 import FolderTree from "react-folder-tree";
 import { useEffect, useRef, useState } from "react";
+import Tabs from "./tabs";
 
 const language = {
   html: "html",
@@ -31,7 +32,7 @@ const initialState = {
 };
 
 export default function CodeEditor() {
-//   const navigate = useNavigate();
+  //   const navigate = useNavigate();
   const {
     watch,
     setValue,
@@ -57,8 +58,33 @@ export default function CodeEditor() {
   const [files, setFiles] = useState(null);
   const editorRef = useRef(null);
   const [clicked, setClicked] = useState("");
+  const [tabsArray, setTabsArray] = useState([]);
+  const [activeFile, setActiveFile] = useState("initialFile.js"); // Change to your initial file name
 
+  const handleTabClick = (fileName) => {
+    setClicked(fileName.location);
+    setActiveFile(fileName);
+  };
 
+  const removeItemFromTabArray = (index) => {
+    const currentArray = [...tabsArray];
+    currentArray.splice(index, 1);
+    if (currentArray.length >= 1) {
+      if (index > 0) {
+        setClicked(currentArray[index - 1].location);
+      } else {
+        setClicked(currentArray[0].location);
+      }
+    } else {
+      setClicked("");
+    }
+    setTabsArray([...currentArray]);
+  };
+
+  // const getFileContent = (fileName) => {
+  //   // Implement this function to get file content
+  //   return ""; // Placeholder for demonstration
+  // };
 
   const onChange = (newValue) => {
     setFiles({
@@ -75,38 +101,45 @@ export default function CodeEditor() {
     editorRef.current?.focus();
   }, [clicked]);
   const [treeState, setTreeState] = useState(initialState);
-  const [updatedKeyvalue, setUpdatedKeyValue] = useState("")
-  
-  
+  const [updatedKeyvalue, setUpdatedKeyValue] = useState("");
+
   const onTreeStateChange = (state, event) => {
-    if(updatedKeyvalue)
-    {
-    let currentValue = {...files}
-    const FilePathArray = updatedKeyvalue.split("/")
-    const fileName = FilePathArray[FilePathArray.length - 1]
-    const extention = fileName?.split(".")[1];
-    const updateValue = {
-        name: event.params[0],
-        language: language[extention?.toLowerCase()] || "",
-        value: currentValue[updatedKeyvalue]?.value || "", 
-    }
-    const location = getPathFromIndices(treeState, event.path);
-    delete currentValue[updatedKeyvalue]
-    currentValue[location] = updateValue
-    setFiles({...currentValue})
-    setClicked(location)
-    setUpdatedKeyValue("")
+    if (updatedKeyvalue) {
+      let currentValue = { ...files };
+      const FilePathArray = updatedKeyvalue.split("/");
+      if (currentValue[updatedKeyvalue]) {
+        const fileName = FilePathArray[FilePathArray.length - 1];
+        const extention = fileName?.split(".")[1];
+        const updateValue = {
+          name: event.params[0],
+          language: language[extention?.toLowerCase()] || "",
+          value: currentValue[updatedKeyvalue]?.value || "",
+        };
+        const location = getPathFromIndices(treeState, event.path);
+        let currentTabValue = [...tabsArray];
+        const index = currentTabValue.findIndex(
+          (itemsValue) => itemsValue.location === updatedKeyvalue
+        );
+        if (index > -1) {
+          currentTabValue[index] = {
+            location,
+            fileName: location.split("/")[location.split("/").length - 1],
+          };
+          setTabsArray([...currentTabValue]);
+        }
+
+        delete currentValue[updatedKeyvalue];
+        currentValue[location] = updateValue;
+
+        setFiles({ ...currentValue });
+        setClicked(location);
+        setUpdatedKeyValue("");
+      }
     }
 
-    setTreeState(state)
+    setTreeState(state);
     // setTreeState(state)
   };
-
-  useEffect(()=> {
-    console.log(files)
-  },[files])
-
-
 
   const folderIcon = ({ onClick: defaultOnClick, nodeData }) => {
     return (
@@ -125,16 +158,16 @@ export default function CodeEditor() {
 
   const onClickHandler = (nodeData) => {
     const location = getPathFromIndices(treeState, nodeData.path);
-    setUpdatedKeyValue(location)
-    return
-  }
+    setUpdatedKeyValue(location);
+    return;
+  };
 
   const editIcon = ({ onClick: defaultOnClick, nodeData }) => {
     return (
       <div
         onClick={() => {
-            onClickHandler(nodeData)
-            defaultOnClick();
+          onClickHandler(nodeData);
+          defaultOnClick();
         }}
       >
         <svg
@@ -190,11 +223,17 @@ export default function CodeEditor() {
       path,
       isOpen,
     } = nodeData;
+
     if (isOpen !== true && isOpen !== false) {
       const location = getPathFromIndices(treeState, path);
       const FileName = location.split("/")[location.split("/").length - 1];
       // if(files.findIndex(item => item.name === location) === -1){
       const extention = FileName?.split(".")[1];
+
+      if (tabsArray.findIndex((items) => items.location === location) === -1) {
+        tabsArray.push({ location, fileName: FileName });
+      }
+
       setClicked(location);
       if (files && Object.keys(files).includes(location)) {
         setFiles({
@@ -202,7 +241,7 @@ export default function CodeEditor() {
           [location]: {
             name: location,
             language: language[extention?.toLowerCase()] || "",
-            value:  files && files[location] ? files[location]?.value : "",
+            value: files && files[location] ? files[location]?.value : "",
           },
         });
       } else if (!files) {
@@ -210,7 +249,7 @@ export default function CodeEditor() {
           [location]: {
             name: location,
             language: language[extention?.toLowerCase()] || "",
-            value:  files && files[location] ? files[location]?.value : ""  ,
+            value: files && files[location] ? files[location]?.value : "",
           },
         });
       }
@@ -220,7 +259,7 @@ export default function CodeEditor() {
   const editorDidMount = (editor, monaco) => {
     // Access the editor instance
     // console.log("Editor instance:", editor);
-    
+
     // Access the Monaco API
     // console.log("Monaco API:", monaco);
 
@@ -229,12 +268,6 @@ export default function CodeEditor() {
       tabSize: 4,
       insertSpaces: true,
     });
-
-    // /* Handle changes in cursor position */
-    // editor.onDidChangeCursorPosition((event) => {
-    //     const cursorPosition = editor.getPosition();
-    //     console.log(cursorPosition);
-    // });
 
     // Set up a completion item provider
     const completionProvider = monaco.languages.registerCompletionItemProvider(
@@ -251,23 +284,14 @@ export default function CodeEditor() {
           };
 
           let suggestions = [
-            // {
-            //     label: 'Password Generator',
-            //     kind: monaco.languages.CompletionItemKind.Function,
-            //     insertText: generatePassword(),
-            //     detail: "Mx Password Generator",
-            //     insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            //     range: range,
-            // },
-            // publisher
             {
-                label: "os_publisher: MicrosoftWindowsServer",
-                kind: monaco.languages.CompletionItemKind.Constant,
-                insertText: "MicrosoftWindowsServer",
-                detail: "Microsoft Windows Server",
-                insertTextRules:
+              label: "os_publisher: MicrosoftWindowsServer",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "MicrosoftWindowsServer",
+              detail: "Microsoft Windows Server",
+              insertTextRules:
                 monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                range: range,
+              range: range,
             },
           ];
 
@@ -291,7 +315,7 @@ export default function CodeEditor() {
                 insertText: "os_publisher",
                 detail: "Operating System Publisher",
                 insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
                 range: range,
               },
               {
@@ -300,7 +324,7 @@ export default function CodeEditor() {
                 insertText: "os_offer",
                 detail: "Operating System Offer",
                 insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
                 range: range,
               },
               {
@@ -362,42 +386,19 @@ export default function CodeEditor() {
           xs={3}
           md={3}
         >
+          {/* 1800-209-5454 */}
           <FolderTree
             data={initialState}
             initCheckedStatus="checked" // default: 0 [unchecked]
             initOpenStatus="custom" // default: 'open'
             onChange={onTreeStateChange}
+            onDoubleClick={onNameClick}
             onNameClick={onNameClick}
             showCheckbox={false} // default: true
             iconComponents={{ OKIcon: editIcon, folderIcon: folderIcon }}
           />
         </Grid>
         <Grid item xs={9} md={9}>
-          {/* <Grid item xs={12} md={12}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              m={2}
-            >
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <IconButton onClick={() => navigate(-1)}>
-                  <ArrowBackIcon />
-                </IconButton>
-                <Typography fontSize={16} fontWeight={700}>
-                  Code Editor
-                </Typography>
-              </Stack>
-              <Button
-                variant="outlined"
-                onClick={() => navigate(-1)}
-                disableElevation
-                color="error"
-              >
-                Cancel
-              </Button>
-            </Stack>
-          </Grid> */}
           <Grid style={{ marginLeft: "30px" }} item xs={12} md={12}>
             <Grid container direction="row">
               <Grid item xs={12} md={6}>
@@ -466,20 +467,29 @@ export default function CodeEditor() {
             xs={12}
             md={12}
           >
-            <React.Suspense fallback={<div>Loading Code Editor...</div>}>
-              {files && (
-                <MonacoEditor
-                  width="100%"
-                  height="100%"
-                  language={files[clicked]?.language || "plaintext"}
-                  path={files[clicked]?.name}
-                  value={files[clicked]?.value}
-                  options={editorOptions}
-                  onMount={editorDidMount}
-                  onChange={onChange}
-                />
-              )}
-            </React.Suspense>
+            <Tabs
+              files={tabsArray} // Add your file names here
+              activeFile={activeFile}
+              setClicked={setClicked}
+              removeItemFromTabArray={removeItemFromTabArray}
+              onTabClick={handleTabClick}
+            />
+            {clicked && (
+              <React.Suspense fallback={<div>Loading Code Editor...</div>}>
+                {files && clicked && (
+                  <MonacoEditor
+                    width="100%"
+                    height="100%"
+                    language={files[clicked]?.language || "plaintext"}
+                    path={files[clicked]?.name}
+                    value={files[clicked]?.value}
+                    options={editorOptions}
+                    onMount={editorDidMount}
+                    onChange={onChange}
+                  />
+                )}
+              </React.Suspense>
+            )}
           </Grid>
         </Grid>
       </Grid>
