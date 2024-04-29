@@ -13,7 +13,7 @@ import TextField from "@mui/material/TextField";
 import { useForm } from "react-hook-form";
 // import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 // import { useNavigate } from "react-router-dom";
-import FolderTree from "react-folder-tree";
+import FolderTree, { testData } from "react-folder-tree";
 import { useEffect, useRef, useState } from "react";
 import Tabs from "./tabs";
 
@@ -215,25 +215,33 @@ export default function CodeEditor() {
     return path;
   };
 
-    const [lastTapTime, setLastTapTime] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
   const delay = 300; // Adjust as needed, this is in milliseconds
 
-  const handleTap = () => {
+  const handleTap = (nodeData) => {
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTapTime;
 
     if (tapLength < delay) {
       // Double tap detected
-      console.log('Double tap!');
+      const Element = document.getElementById(JSON.stringify(nodeData?.path));
+      const CloseElement = document.getElementById(`close-${JSON.stringify(nodeData?.path)}`)
+      console.log(CloseElement)
+      if (Element) {
+        if(CloseElement) {
+          console.log(CloseElement)
+          CloseElement.click()
+        }
+        Element.click();
+      }
       // Add your double tap logic here
     }
 
     setLastTapTime(currentTime);
   };
 
-
   const onNameClick = ({ defaultOnClick, nodeData }) => {
-    handleTap()
+    handleTap(nodeData);
     defaultOnClick();
     const {
       // internal data
@@ -376,6 +384,60 @@ export default function CodeEditor() {
     });
   };
 
+  const EditIcon = ({ onClick: defaultOnClick, nodeData }) => {
+    return (
+      <div  
+        style={{visibility : "hidden"}}
+        id={JSON.stringify(nodeData.path)}
+        onClick={() => {
+          // onClickHandler(nodeData);
+          defaultOnClick();
+        }}
+      >
+        <svg
+          stroke="currentColor"
+          fill="currentColor"
+          stroke-width="0"
+          viewBox="0 0 576 512"
+          height="1em"
+          width="1em"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M402.3 344.9l32-32c5-5 13.7-1.5 13.7 5.7V464c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V112c0-26.5 21.5-48 48-48h273.5c7.1 0 10.7 8.6 5.7 13.7l-32 32c-1.5 1.5-3.5 2.3-5.7 2.3H48v352h352V350.5c0-2.1.8-4.1 2.3-5.6zm156.6-201.8L296.3 405.7l-90.4 10c-26.2 2.9-48.5-19.2-45.6-45.6l10-90.4L432.9 17.1c22.9-22.9 59.9-22.9 82.7 0l43.2 43.2c22.9 22.9 22.9 60 .1 82.8zM460.1 174L402 115.9 216.2 301.8l-7.3 65.3 65.3-7.3L460.1 174zm64.8-79.7l-43.2-43.2c-4.1-4.1-10.8-4.1-14.8 0L436 82l58.1 58.1 30.9-30.9c4-4.2 4-10.8-.1-14.9z"></path>
+        </svg>
+      </div>
+    );
+  };
+
+  const CloseElement = ({ onClick: defaultOnClick, nodeData }) => {
+   
+    return (
+      <div
+      // style={{display : "none"}}
+        className="Close-btn"
+        id={`close-${JSON.stringify(nodeData.path)}`}
+        onClick={() => {
+          // onClickHandler(nodeData);
+          defaultOnClick();
+        }}
+      >
+        {" "}
+        <svg
+          stroke="currentColor"
+          fill="currentColor"
+          stroke-width="0"
+          viewBox="0 0 1024 1024"
+          class="icon CancelIcon"
+          height="1em"
+          width="1em"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M563.8 512l262.5-312.9c4.4-5.2.7-13.1-6.1-13.1h-79.8c-4.7 0-9.2 2.1-12.3 5.7L511.6 449.8 295.1 191.7c-3-3.6-7.5-5.7-12.3-5.7H203c-6.8 0-10.5 7.9-6.1 13.1L459.4 512 196.9 824.9A7.95 7.95 0 0 0 203 838h79.8c4.7 0 9.2-2.1 12.3-5.7l216.5-258.1 216.5 258.1c3 3.6 7.5 5.7 12.3 5.7h79.8c6.8 0 10.5-7.9 6.1-13.1L563.8 512z"></path>
+        </svg>
+      </div>
+    );
+  };
+
   const fontSizeOptions = useMemo(() => {
     return [
       { label: "12", id: 12 },
@@ -388,6 +450,17 @@ export default function CodeEditor() {
     () => fontSizeOptions.find((option) => option.id === fontSizeField) ?? null,
     [fontSizeOptions, fontSizeField]
   );
+
+  const addUrl = (node) => {
+    const fakeUrl = `root/${node.name}`;
+    if (node.children) {
+      node.url = fakeUrl;
+      node.children = node.children.map((c) => addUrl(c));
+    } else {
+      node.url = fakeUrl;
+    }
+    return node;
+  };
 
   return (
     <Grid
@@ -404,13 +477,18 @@ export default function CodeEditor() {
           md={3}
         >
           <FolderTree
-            data={initialState}
-            initCheckedStatus="checked" // default: 0 [unchecked]
-            initOpenStatus="custom" // default: 'open'
+            data={addUrl(initialState)}
+            initCheckedStatus="checked"
+            initOpenStatus="custom"
             onChange={onTreeStateChange}
             onNameClick={onNameClick}
-            showCheckbox={false} // default: true
-            iconComponents={{ OKIcon: editIcon, folderIcon: folderIcon }}
+            showCheckbox={false}
+            iconComponents={{
+              OKIcon: editIcon,
+              EditIcon: EditIcon,
+              CancelIcon : CloseElement,
+              folderIcon: folderIcon,
+            }}
           />
         </Grid>
         <Grid item xs={9} md={9}>

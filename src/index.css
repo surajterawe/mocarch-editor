@@ -21,8 +21,12 @@ code {
   display: flex;
   margin-left: auto !important;
   gap : 10px
+  
 }
 
+.TreeNodeToolBar .Close-btn {
+  display: none;
+}
 .editingName {
   display: flex;
   gap : 10px;
@@ -30,6 +34,10 @@ code {
 .EditableName {
   cursor: pointer;
 }
+.TreeNodeToolBar {
+  display: flex !important;
+}
+
 .editableNameToolbar {
   display: flex;
   gap : 10px;
